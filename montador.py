@@ -35,10 +35,10 @@ instrucoes = {
 }
 
 registradores = {
-    "RA": 0x0,
-    "RB": 0x1,
-    "RC": 0x2,
-    "RD": 0x3
+    "R0": 0x0,
+    "R1": 0x1,
+    "R2": 0x2,
+    "R3": 0x3
 }
 
 # Lista onde os códigos hexadecimais serão armazenados
