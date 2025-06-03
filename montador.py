@@ -19,7 +19,14 @@ memory[0] = '7c'
 memory[1] = '7a'
 memory [2] = '7b'
 memory[3] = '7d'
-a
+for i, linha in enumerate(p):
+  if not linha.strip():
+    continue
+  partes = linha.strip()
+
+  instrucao = partes[0]
+
+  if instrucao not in instrucoes
 hexadecimal = hex(int(binario, 2))
 
 
