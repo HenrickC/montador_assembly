@@ -31,7 +31,7 @@ instrucoes = {
     'DATA': 0x02,
     'JMPR': 0x03,
     'JMP': 0x04,
-    'JMPCAEZ': 0x05,
+    'JCAEZ': 0x05,
     'CLF': 0x06
 }
 
@@ -70,11 +70,11 @@ for linha in linhas:
     # Caso 2: Instrução + 1 registrador (ex: JMPR RB)
     elif len(operandos) == 1 and operandos[0] in registradores:
         reg = registradores[operandos[0]]
-        byte = opcode | reg  # Combina opcode com registrador (últimos bits)
+        byte = (opcode << 4) | reg
         hex_program.append(f"{byte:02X}")
 
     # Caso 3: Instrução + endereço (ex: JMP 0x20)
-    elif len(operandos) == 1 and operandos[0].startswith('0x'):
+    elif len(operandos) == 1 and operandos[0].lower().startswith('0x'):
         endereco = int(operandos[0], 16)  # Espera endereço como hexa (ex: '0x20')
         hex_program.append(f"{opcode:02X}")
         hex_program.append(f"{endereco:02X}")
@@ -83,14 +83,14 @@ for linha in linhas:
     elif len(operandos) == 2 and operandos[0] in registradores and operandos[1] in registradores:
         r1 = registradores[operandos[0]]
         r2 = registradores[operandos[1]]
-        byte = opcode | (r1 << 2) | r2
+        byte = (opcode << 4) | (r1 << 2) | r2
         hex_program.append(f"{byte:02X}")
 
     # Caso 5: Instrução + registrador + endereço (ex: DATA R2, 0x20)
-    elif len(operandos) == 2 and operandos[0] in registradores:
+    elif instrucao == 'DATA' and len(operandos) == 2 and operandos[0] in registradores and operandos[1].lower().startswith('0x'):
         reg = registradores[operandos[0]]
         endereco = int(operandos[1], 16)
-        byte = opcode | reg
+        byte = (opcode << 4) | reg
         hex_program.append(f"{byte:02X}")
         hex_program.append(f"{endereco:02X}")
 
@@ -98,7 +98,7 @@ for linha in linhas:
         print(f"Formato de instrução inválido: {linha}")
         continue
 
-# Geração do arquivo
+# Geração do arquivo9
 with open('program.txt', 'w') as f:
     f.write('v3.0 hex words plain\n')  # Cabeçalho
     for hex_code in hex_program:
