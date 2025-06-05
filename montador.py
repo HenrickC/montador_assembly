@@ -1,4 +1,3 @@
-import os
 
 
 #precisa ter um arquivo.asm ja pronto com as instruções
@@ -17,6 +16,25 @@ import os
 #instrucoes em binario instrucoes = {'ADD':0b1000, 'SR':0b1001, 'SL':0b1010, 'NOT':0b1011, 'AND':0b1100, 'OR':0b1101, 'XOR':0b1110,'CMP':0b1111,'LD':0b0,
               #'ST':0b1,'DATA':0b10,'JMPR':0b11,'JMP':0b100,'JMPCAEZ':0b101,'CLF':0b110}
 
+import os
+
+# Nome: Carlos Henrick Cavalcante Gomes
+# Matricula: 22400691
+
+
+#Ainda falta os casos de IO OUT ADRR, ETC.
+
+#funcoes
+def parse_endereco(valor):
+    valor = valor.lower()
+    if valor.startswith('0x'):
+        return int(valor, 16)
+    elif valor.startswith('0b'):
+        return int(valor, 2)
+    else:
+        return int(valor)  # Decimal puro
+
+# Dicionário de instruções
 instrucoes = {
     'ADD': 0x08,
     'SR': 0x09,
@@ -31,8 +49,26 @@ instrucoes = {
     'DATA': 0x02,
     'JMPR': 0x03,
     'JMP': 0x04,
-    'JCAEZ': 0x05,
     'CLF': 0x06
+}
+
+# Condições de salto (usadas com opcode base 0x5)
+condicoes = {
+    'JZ':  0x1,
+    'JC':  0x2,
+    'JA':  0x4,
+    'JE':  0x8,
+    'JCA':  0x2 | 0x4,
+    'JCE':  0x2 | 0x8,
+    'JCZ':  0x2 | 0x1,
+    'JAE':  0x4 | 0x8,
+    'JAZ':  0x4 | 0x1,
+    'JEZ':  0x8 | 0x1,
+    'JCAE': 0x2 | 0x4 | 0x8,
+    'JCAZ': 0x2 | 0x4 | 0x1,
+    'JCEZ': 0x2 | 0x8 | 0x1,
+    'JAEZ': 0x4 | 0x8 | 0x1,
+    'JCAEZ': 0x2 | 0x4 | 0x8 | 0x1
 }
 
 registradores = {
@@ -42,64 +78,74 @@ registradores = {
     'R3': 0x03
 }
 
-# Lista onde os códigos hexadecimais serão armazenados
 hex_program = []
 
-# Lê o arquivo de entrada
+# Leitura do programa
 with open('program.asm', 'r') as f:
-    linhas = f.read().upper().splitlines()
+    linhas = f.read().splitlines()
 
 for linha in linhas:
     if not linha.strip():
-        continue  # Ignora linhas em branco
+        continue  # ignora linhas em branco
 
-    partes = linha.strip().split()
-    instrucao = partes[0]
+    # Remove vírgulas e divide corretamente
+    linha = linha.split(';')[0].strip()  # Remove comentários e espaços
+    linha = linha.strip().replace(',', ' ')
+    linha = ' '.join(linha.strip().split())  # remove espaços duplicados
+    linha = linha.upper()                  # força maiúsculas
+    partes = linha.split()
+    if not partes:
+        continue  # ignora linha vazia após remoção de comentários, etc.
+    instrucao = partes[0].upper()
+    operandos = [op.upper() for op in partes[1:]]
 
-    if instrucao not in instrucoes:
-        print(f"Instrução inválida: {instrucao}")
-        continue
+    # Instruções de salto condicional personalizadas (2 bytes: opcode + endereço)
+    if instrucao in condicoes and len(operandos) == 1 and operandos[0].startswith('0X'):
+        endereco = parse_endereco(operandos[0])
+        cond_byte = (0x05 << 4) | condicoes[instrucao]
+        hex_program.append(f"{cond_byte:02X}")
+        hex_program.append(f"{endereco:02X}")
 
-    opcode = instrucoes[instrucao]
-    operandos = partes[1:]
+    # Caso 1: Instrução sem operando (ex: CLF)
+    elif instrucao in instrucoes and len(operandos) == 0:
+        hex_program.append(f"{instrucoes[instrucao]:02X}")
 
-    # Caso 1: Apenas a instrução (ex: CLF)
-    if len(operandos) == 0:
-        hex_program.append(f"{opcode:02X}")
-
-    # Caso 2: Instrução + 1 registrador (ex: JMPR RB)
-    elif len(operandos) == 1 and operandos[0] in registradores:
+    # Caso 2: Instrução + 1 registrador (ex: JMPR R1)
+    elif instrucao in instrucoes and len(operandos) == 1 and operandos[0] in registradores:
         reg = registradores[operandos[0]]
-        byte = (opcode << 4) | reg
+        byte = (instrucoes[instrucao] << 4) | reg
         hex_program.append(f"{byte:02X}")
 
-    # Caso 3: Instrução + endereço (ex: JMP 0x20)
-    elif len(operandos) == 1 and operandos[0].lower().startswith('0x'):
-        endereco = int(operandos[0], 16)  # Espera endereço como hexa (ex: '0x20')
-        hex_program.append(f"{opcode:02X}")
+    # Caso 3: Instrução + 1 endereço (ex: JMP 0x20)
+    elif instrucao in instrucoes and len(operandos) == 1 and operandos[0].startswith('0X'):
+        endereco = parse_endereco(operandos[0])
+        hex_program.append(f"{instrucoes[instrucao]:02X}")
         hex_program.append(f"{endereco:02X}")
 
     # Caso 4: Instrução + 2 registradores (ex: ADD R0 R2)
-    elif len(operandos) == 2 and operandos[0] in registradores and operandos[1] in registradores:
+    elif instrucao in instrucoes and len(operandos) == 2 and operandos[0] in registradores and operandos[1] in registradores:
         r1 = registradores[operandos[0]]
         r2 = registradores[operandos[1]]
-        byte = (opcode << 4) | (r1 << 2) | r2
+        byte = (instrucoes[instrucao] << 4) | (r1 << 2) | r2
         hex_program.append(f"{byte:02X}")
 
-    # Caso 5: Instrução + registrador + endereço (ex: DATA R2, 0x20)
-    elif instrucao == 'DATA' and len(operandos) == 2 and operandos[0] in registradores and operandos[1].lower().startswith('0x'):
-        reg = registradores[operandos[0]]
-        endereco = int(operandos[1], 16)
-        byte = (opcode << 4) | reg
+    # Caso 5: DATA + registrador + endereço (ex: DATA R2, 0x20)
+    elif instrucao == 'DATA' and len(operandos) == 2 and operandos[0] in registradores:
+        reg = registradores[operandos[0].upper()]
+        try:
+            endereco = parse_endereco(operandos[1])
+        except ValueError:
+            print(f"Endereço inválido: {operandos[1]}")
+            continue
+        byte = (instrucoes[instrucao] << 4) | reg
         hex_program.append(f"{byte:02X}")
         hex_program.append(f"{endereco:02X}")
 
     else:
-        print(f"Formato de instrução inválido: {linha}")
-        continue
+        print(f"Instrução inválida ou mal formatada: {linha}")
 
-# Geração do arquivo9
+# Escreve a saída
 with open('program.txt', 'w') as f:
-    f.write('v3.0 hex words plain\n')  # Cabeçalho
+    f.write('v3.0 hex words plain\n')
     for hex_code in hex_program:
         f.write(f"{hex_code}\n")
