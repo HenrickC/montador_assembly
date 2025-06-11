@@ -78,6 +78,7 @@ instrucoes = {
     'OUT': 0x07
 }
 
+
 # Instruções especiais, o JCAEZ, por ter uma variedade de possibilidades de JC até JCAEZ, acredito que colocar todas estas
 #condições em um único dicionário tornaria o código mais legível.
 condicoes = {
@@ -99,6 +100,8 @@ condicoes = {
 }
 #O uso de | faz uma especie de intersecção entre os valores no formato binário, e assim, todos estes se encaixam formando um 
 #unico valor.
+"""exemplo:
+"""
 
 
 #Dicionário contendo o valor dos registradores em hexadecimal.
@@ -113,23 +116,25 @@ registradores = {
 hex_program = []
 
 # Leitura do programa
-with open('teste.asm', 'r') as f:
-    linhas = f.read().splitlines()
+with open('teste.asm', 'r') as f: ##Abre o programa, no modo read(ler).
+    linhas = f.read().splitlines() #Lê o arquivo como uma string única, e depois, a partir da leitura dos \n, quebra ele em linhas.
 
-for linha in linhas:
-    if not linha.strip():
-        continue  # ignora linhas em branco
+for linha in linhas: # percorre linha por linha em linhas
+    if not linha.strip(): # Se a linha não estiver vazia depois de excluir os espaços com strip, continue
+        continue  
 
     # Remove vírgulas e divide corretamente
-    linha = linha.split(';')[0].strip()  # Remove comentários e espaços
-    linha = linha.strip().replace(',', ' ')
+    linha = linha.split(';')[0].strip()  # Remove comentários marcados por ; e espaços
+    linha = linha.strip().replace(',', ' ')  #as virgulas encontradas serão substituidas por espaço.
     linha = ' '.join(linha.strip().split())  # remove espaços duplicados
-    linha = linha.upper()                  # força maiúsculas
-    partes = linha.split()
+    linha = linha.upper() # transforma tudo em maíusculas
+    partes = linha.split()"""Divide a linha em um vetor,
+    sendo partes[0] e os seguintes sendo seus argumentos"""
     if not partes:
         continue  # ignora linha vazia após remoção de comentários, etc.
-    instrucao = partes[0].upper()
-    operandos = [op.upper() for op in partes[1:]]
+    instrucao = partes[0].upper() #atribui a instrução para uma variavel
+    operandos = [op.upper() for op in partes[1:]]"""Operandos são guardados em um vetor em específico,
+    já que, de partes[1] até o ultimo elemento do vetor partes seriam os argumentos."""
 
     # Instruções de salto condicional personalizadas (2 bytes: opcode + endereço)
     if instrucao in condicoes and len(operandos) == 1:
