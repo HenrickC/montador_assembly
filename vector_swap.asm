@@ -1,35 +1,48 @@
 ; vector_swap.asm
-; Programa para inverter um vetor de 7 inteiros in-place.
+; Inverte um vetor de 7 elementos (endereçado manualmente)
 
-START:
-    ; Carregar o endereço do vetor em R0
-    JMP R0, VECTOR_START  ; R0 aponta para o início do vetor
+; Inicialização dos registradores
+DATA R0 0x20     ; R0 = endereço base do vetor (ex: posição 0x20 na RAM)
+DATA R1 0x00     ; R1 = índice inicial (i)
+DATA R2 0x06     ; R2 = índice final   (j)
 
-    ; Inicializando os índices do vetor (início e fim)
-    MOV R1, #0           ; R1 = índice inicial
-    MOV R2, #6           ; R2 = índice final (6, pois temos 7 elementos)
+; Início do loop - endereço 0x06
 
-LOOP:
-    ; Carregar os valores de R1 e R2 para trocar os elementos
-    MOV R3, [R0 + R1]    ; R3 = vetor[R1]
-    MOV R4, [R0 + R2]    ; R4 = vetor[R2]
+; R3 = R0 + R1
+ADD R3 R0
+ADD R3 R1
+LD R4 R3         ; R4 = vetor[i]
 
-    ; Trocar os valores
-    MOV [R0 + R1], R4    ; vetor[R1] = R4
-    MOV [R0 + R2], R3    ; vetor[R2] = R3
+; R5 = R0 + R2
+ADD R5 R0
+ADD R5 R2
+LD R6 R5         ; R6 = vetor[j]
 
-    ; Atualizar os índices
-    INC R1               ; R1++
-    DEC R2               ; R2--
+; Troca os valores
+ST R3 R6         ; vetor[i] = R6
+ST R5 R4         ; vetor[j] = R4
 
-    ; Verificar se os índices se cruzaram
-    CMP R1, R2           ; R1 == R2?
-    JNE LOOP              ; Se não, continua o loop
+; i++
+DATA R7 0x01
+ADD R1 R7
 
-    ; Fim do programa
-    HALT
+; j--
+DATA R7 0xFF     ; -1 em 2's complemento
+ADD R2 R7
 
-VECTOR_START:
-    .DATA
-    ; Vetor de 7 inteiros
-    .WORD 10, 20, 30, 40, 50, 60, 70  ; Inicialização do vetor
+; Verifica se i < j
+CMP R1 R2
+JAE 0x06         ; Se R1 < R2, continua o loop (salta para 0x06)
+
+; Loop infinito simulando HALT
+JMP 0x1C         ; Salto para o endereço dos dados para loop infinito
+
+; Vetor começa no endereço 0x20 (usado acima como base do vetor)
+; vetor = [10, 20, 30, 40, 50, 60, 70]
+DATA R0 0x0A     ; 0x20
+DATA R0 0x14     ; 0x21
+DATA R0 0x1E     ; 0x22
+DATA R0 0x28     ; 0x23
+DATA R0 0x32     ; 0x24
+DATA R0 0x3C     ; 0x25
+DATA R0 0x46     ; 0x26
