@@ -1,9 +1,6 @@
-
-
 import os
+import sys
 
-# Nome: Carlos Henrick Cavalcante Gomes
-# Matricula: 22400691
 
 #Estudo de Caso:
 #O codigo tem que ler as instrucoes do arquivo .asm, converter pra hexa e colocar num arquivo.txt.
@@ -100,7 +97,9 @@ registradores = {
 hex_program = []
 
 # Leitura do programa
-with open('teste.asm', 'r') as f: ##Abre o programa, no modo read(ler).
+entrada = sys.argv[1] #vector_swap.asm
+saida = sys.argv[2] #vector_swap.m
+with open(entrada, 'r') as f: ##Abre o programa, no modo read(ler).
     linhas = f.read().splitlines() #Lê o arquivo como uma string única, e depois, a partir da leitura dos \n, quebra ele em linhas.
 
 for linha in linhas: 
@@ -181,7 +180,7 @@ for linha in linhas:
         print(f"Instrução inválida ou mal formatada: {linha}")
 
 # Escreve a saída
-with open('teste.txt', 'w') as f:
+with open(saida, 'w') as f:
     f.write('v3.0 hex words plain\n')
     for hex_code in hex_program:
         f.write(f"{hex_code}\n")
