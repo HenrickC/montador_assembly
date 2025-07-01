@@ -1,6 +1,7 @@
 import os
 import sys
-
+# Nome: Carlos Henrick Cavalcante Gomes
+# Matricula: 22400691
 
 #Estudo de Caso:
 #O codigo tem que ler as instrucoes do arquivo .asm, converter pra hexa e colocar num arquivo.txt.
@@ -39,6 +40,57 @@ def to_byte(valor):
         raise ValueError(f"Valor fora do intervalo permitido: {valor}")#Se não for, ocorre um erro
     return valor & 0xFF # o valor em binário é retornado.
 
+def primeira_passagem_label(linhas):
+    labels = {}
+    linhas_limpas = []
+    endereco_atual = 0
+
+    for linha in linhas:
+        original = linha
+        linha = linha.split(';')[0].strip()
+        if not linha:
+            continue
+
+        if ':' in linha:
+            label, *resto = linha.split(':')
+            label = label.strip().upper()
+            labels[label] = endereco_atual
+            linha = ':'.join(resto).strip()
+            if not linha:
+                linhas_limpas.append("")  # só label na linha
+                continue
+
+        linha = linha.replace(',', ' ')
+        linha = ' '.join(linha.split())
+        linhas_limpas.append(linha)
+
+        partes = linha.upper().split()
+        if not partes:
+            continue
+        instrucao = partes[0]
+
+        if instrucao == 'HALT':
+            endereco_atual += 2
+        elif instrucao in condicoes:
+            endereco_atual += 2
+        elif instrucao == 'MOVE':
+            endereco_atual += 3
+        elif instrucao == 'DATA':
+            endereco_atual += 2
+        elif instrucao in ['IN', 'OUT']:
+            endereco_atual += 1
+        elif instrucao in instrucoes:
+            if len(partes) == 1:
+                endereco_atual += 1
+            elif len(partes) == 2:
+                if partes[1].startswith('0X'):
+                    endereco_atual += 2
+                else:
+                    endereco_atual += 1
+            elif len(partes) == 3:
+                endereco_atual += 2
+
+    return labels, linhas_limpas
 
 # Dicionário de instruções, guardadas em hexadecimal
 instrucoes = {
@@ -55,9 +107,10 @@ instrucoes = {
     'DATA': 0x02,
     'JMPR': 0x03,
     'JMP': 0x04,
-    'CLF': 0x06,
+    'CLR': 0x06,
     'IN': 0x07,
-    'OUT': 0x07
+    'OUT': 0x07,
+    'HALT': 0x04
 }
 
 
@@ -96,13 +149,14 @@ registradores = {
 #Vetor que guardará as instruções em hexadecimal e será responsavel por imprimí-las no arquivo .txt
 hex_program = []
 
+entrada = sys.argv[1]
+saida = sys.argv[2]
 # Leitura do programa
-entrada = sys.argv[1] #vector_swap.asm
-saida = sys.argv[2] #vector_swap.m
 with open(entrada, 'r') as f: ##Abre o programa, no modo read(ler).
     linhas = f.read().splitlines() #Lê o arquivo como uma string única, e depois, a partir da leitura dos \n, quebra ele em linhas.
 
-for linha in linhas: 
+labels, linhas_limpas = primeira_passagem_label(linhas)
+for linha in linhas_limpas: 
     if not linha.strip(): # Se a linha não estiver vazia depois de excluir os espaços com strip, continue
         continue  
 
@@ -118,9 +172,48 @@ for linha in linhas:
     instrucao = partes[0].upper() #atribui a instrução para uma variavel
     operandos = [op.upper() for op in partes[1:]]#Operandos são guardados em um vetor em específico, já que, de partes[1] até o ultimo elemento do vetor partes seriam os argumentos."""
 
+
+    #Caso Halt:
+    if instrucao == 'HALT':
+        endereco_atual = len(hex_program) + 2
+        opcode_jmp = instrucoes['JMP']
+        hex_program.append(f"{opcode_jmp:02X}")
+        hex_program.append(f"{to_byte(endereco_atual):02X}")
+        continue
+    
+    #Caso CLR NOVO
+    if instrucao == 'CLR' and len(operandos) == 1 and operandos[0] in registradores:
+        reg = registradores[operandos[0]]
+        instr_val = instrucoes['XOR'] # Interpreta o CLR como XOR
+        byte = (instr_val << 4) | (reg << 2) | reg #OR bit a bbit para mesclar  os valores de RA com RA, zerando RA
+        hex_program.append(f"{byte:02X}")
+        continue
+
+        #Caso De Move:
+    if instrucao == 'MOVE' and len(operandos) == 2 and operandos[0] in registradores and operandos[1] in registradores:
+        ra = operandos[0]
+        rb = operandos[1]
+        
+        # XOR RA, RA
+        r1 = registradores[ra]
+        r2 = registradores[ra]
+        byte1 = (instrucoes['XOR'] << 4) | (r1 << 2) | r2
+        hex_program.append(f"{byte1:02X}")
+
+        # XOR RA, RB
+        r1 = registradores[ra]
+        r2 = registradores[rb]
+        byte2 = (instrucoes['XOR'] << 4) | (r1 << 2) | r2
+        hex_program.append(f"{byte2:02X}")
+        continue
+
     #Caso 1: 1 Instrução + 1 Endereço(Ex: JMP Addr)
     if instrucao in condicoes and len(operandos) == 1:
-        endereco = parse_endereco(operandos[0])
+        op = operandos[0]
+        if op in labels:
+            endereco = labels[op]
+        else:
+            endereco = parse_endereco(op)
         cond_byte = (0x05 << 4) | condicoes[instrucao]
         hex_program.append(f"{cond_byte:02X}")
         hex_program.append(f"{endereco:02X}")
@@ -140,6 +233,18 @@ for linha in linhas:
         endereco = parse_endereco(operandos[0])
         hex_program.append(f"{instrucoes[instrucao]:02X}")
         hex_program.append(f"{to_byte(endereco):02X}")
+
+    #Caso JMP com label:
+    elif instrucao == 'JMP' and len(operandos) == 1:
+        op = operandos[0]
+        if op in labels:
+            endereco = labels[op]
+        else:
+            endereco = parse_endereco(op)  # caso o operando seja um número decimal
+        hex_program.append(f"{instrucoes[instrucao]:02X}")
+        hex_program.append(f"{to_byte(endereco):02X}")
+        continue
+
 
 
     # Caso 5: Instrução + 2 registradores (ex: ADD R0 R2)
