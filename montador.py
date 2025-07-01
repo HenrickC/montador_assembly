@@ -40,7 +40,7 @@ def to_byte(valor):
         raise ValueError(f"Valor fora do intervalo permitido: {valor}")#Se não for, ocorre um erro
     return valor & 0xFF # o valor em binário é retornado.
 
-def primeira_passagem_label(linhas):
+def primeira_passagem_label(linhas): #Para detectar o que é label.
     labels = {}
     linhas_limpas = []
     endereco_atual = 0
@@ -149,8 +149,8 @@ registradores = {
 #Vetor que guardará as instruções em hexadecimal e será responsavel por imprimí-las no arquivo .txt
 hex_program = []
 
-entrada = sys.argv[1]
-saida = sys.argv[2]
+entrada = sys.argv[1] #program.asm
+saida = sys.argv[2] #exe3.txt
 # Leitura do programa
 with open(entrada, 'r') as f: ##Abre o programa, no modo read(ler).
     linhas = f.read().splitlines() #Lê o arquivo como uma string única, e depois, a partir da leitura dos \n, quebra ele em linhas.
@@ -176,7 +176,7 @@ for linha in linhas_limpas:
     #Caso Halt:
     if instrucao == 'HALT':
         endereco_atual = len(hex_program) + 2
-        opcode_jmp = instrucoes['JMP']
+        opcode_jmp = instrucoes['JMP']#interpreta ele como JMP
         hex_program.append(f"{opcode_jmp:02X}")
         hex_program.append(f"{to_byte(endereco_atual):02X}")
         continue
